@@ -1,0 +1,36 @@
+<div class="col-sm-4 col-sm-offset-4">
+    <select class="form-control" ng-model="metaType.current" ng-change="buildChartData(true)">
+        <option ng-repeat="mt in metaTypes" value="{{mt}}">{{mt}}</option>
+    </select>
+</div>
+
+
+
+
+<div class="col-sm-8 col-sm-offset-2" ng-if="labels.length > 0">
+    <canvas id="doughnut" class="chart chart-doughnut" chart-data="values" chart-labels="labels" chart-click="clickChart">
+    </canvas> 
+</div>     
+
+<div class="col-sm-12">
+<h5>{{selectedValues | json}}</h5>
+</div>
+
+<div class="col-sm-12 form-group">
+    <div class="input-group">
+
+        <ui-select multiple ng-model="metaType.selected" theme="bootstrap" close-on-select="false" title="Filter on {{metaType.current}}">
+            <ui-select-match placeholder="Select values...">{{$item}}</ui-select-match>
+            <ui-select-choices repeat="item as item in metaType.values | filter: $select.search">
+                <div ng-bind-html="item | highlight: $select.search"></div>
+            </ui-select-choices>
+        </ui-select>
+
+            <span class="input-group-btn">
+              <button type="button" class="btn btn-default">
+                <span class="fa fa-trash"></span>
+              </button>
+            </span>
+
+    </div>
+</div>
