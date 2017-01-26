@@ -14,7 +14,7 @@ app.config(['$routeProvider','$locationProvider',function($routeProvider, $locat
     $locationProvider.html5Mode(true);
 }]);
 
-app.controller("MainController",['$scope','$http','$timeout',function($scope,$http,$timeout) {
+app.controller("MainController",['$scope','$http',function($scope,$http) {
     $scope.query = "";
     $scope.meta = null;
     $scope.metaTypes = null;
@@ -25,19 +25,18 @@ app.controller("MainController",['$scope','$http','$timeout',function($scope,$ht
     $scope.numSamples = 0;
     $scope.numCalculating = 0;
 
+    $scope.gene = {
+        search: ""
+    }
+
     $scope.metaType = {
         "current": null,
         "values": [],
         "selected":[]
     };
 
-    $scope.labels = ["one","two","three"];
-    $scope.values = [500,350,212];
-
-    $timeout(function() {
-        $scope.values = [700,150,420];
-    },3000)
-
+    $scope.labels = [];
+    $scope.values = [];
 
     $scope.$watch("selectedValues", function(newValue,oldValue) {
         angular.forEach(newValue,function(value,key) {
@@ -71,7 +70,8 @@ app.controller("MainController",['$scope','$http','$timeout',function($scope,$ht
         url: '/info'
     }).then(function successCallback(response) {
         console.log(response.data);
-        $scope.totalNumGenes = response.data.genes
+        $scope.totalNumGenes = response.data.numGenes
+        $scope.genes = response.data.genes
     }, function errorCallback(response) {
         console.error(response)
     });        
@@ -122,7 +122,12 @@ app.controller("MainController",['$scope','$http','$timeout',function($scope,$ht
             },null);
             if (changed === true) {
                 $scope.metaType.values = angular.copy($scope.labels);
-                $scope.metaType.selected = [];
+                if ($scope.selectedValues[$scope.metaType.current] != undefined) {
+                    $scope.metaType.selected = $scope.selectedValues[$scope.metaType.current];
+                } else {
+                    $scope.metaType.selected = [];
+                }
+                
             }
         }        
     }
@@ -130,19 +135,67 @@ app.controller("MainController",['$scope','$http','$timeout',function($scope,$ht
 
 
     $scope.clickChart = function(x) {
-        var clickedVal = $scope.labels[x[0]._index]
-        var index = $scope.metaType.selected.indexOf(clickedVal);
-        console.log(clickedVal,index)
-        if (index == -1) {
-            $scope.metaType.selected.push(clickedVal);
-        } else {
-            $scope.metaType.selected.splice(index,1);
+        if (x.length > 0) {
+            var clickedVal = $scope.labels[x[0]._index]
+            var index = $scope.metaType.selected.indexOf(clickedVal);
+            console.log(clickedVal,index)
+            if (index == -1) {
+                $scope.metaType.selected.push(clickedVal);
+            } else {
+                $scope.metaType.selected.splice(index,1);
+            }
+            $scope.$apply();
         }
-        $scope.$apply();
+    }
+
+    $scope.commitFilters = function() {
+        $scope.selectedValues[$scope.metaType.current] = $scope.metaType.selected
+    }
+
+    $scope.selectFilter = function(val) {
+        if (val != $scope.metaType.current) {
+            $scope.metaType.current = val;
+            $scope.buildChartData(true);
+        }
+    }
+
+    $scope.deleteFilter = function(val) {
+        delete $scope.selectedValues[val];
+        if ($scope.metaType.current == val) {
+            $scope.metaType.selected = [];
+        }
+    }
+
+    $scope.noFilters = function() {
+        return Object.keys($scope.selectedValues).length === 0;
+    }
+
+    $scope.numberOfSamples = function(item) {
+        var value = $scope.meta[$scope.metaType.current][item]
+        if (value !== undefined) {
+            return value;
+        } else {
+            return 0;
+        }
     }
 
     $scope.logScope = function() {
         console.log($scope);
     }
+
+    $scope.$watch("gene", function(newValue,oldValue) {
+        console.log(newValue)
+        $http({
+            method: 'GET',
+            url: '/api/genes?query='+newValue.search
+        }).then(function successCallback(response) {
+            console.log(response.data);
+            $scope.genes = response.data;
+
+        }, function errorCallback(response) {
+            console.error(response)
+        });
+    }, true)
+
 
 }]);

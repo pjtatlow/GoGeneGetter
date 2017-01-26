@@ -21,3 +21,58 @@ body {
     border: 0;
     color: #eee;
 }
+
+.max-height-50 {
+  max-height: 50vh;
+  max-width: 50vh;
+}
+
+.center-chart {
+  position: relative;
+  margin: 0 auto;
+}
+
+.ui-select-multiple.ui-select-bootstrap {
+  min-height: 34px;
+}
+
+.selectize-input-btn {
+  min-height: 34px;
+  height: 100%;
+}
+
+span > .selectize-input-btn {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.meta-filter {
+  border: 1px solid darkgray;
+  border-radius: 3px 0px 0px 3px;
+  padding: 5px 10px 5px 10px;
+  margin: 10px 0px 10px 5px;
+  display: inline-block;
+  font-size: .8em;
+  cursor: pointer;
+  vertical-align: middle;
+  height: 30px;
+}
+
+.meta-filter > span {
+  vertical-align: middle;
+}
+
+.meta-filter:hover {
+  background-color: #ebebeb;
+}
+
+.meta-delete {
+  height: 30px;
+  border: 1px solid darkgray;
+  /*position: absolute;*/
+  border-radius: 0px 3px 3px 0px;
+  display: inline-block;
+  font-size: .8em;
+  margin: 10px 5px 10px -5px;
+  /*color: lightgray;*/
+}

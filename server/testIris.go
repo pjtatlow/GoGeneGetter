@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"index/suffixarray"
 	"log"
 	"os"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/deckarep/golang-set"
@@ -18,9 +20,19 @@ var dbFile string
 var cacheMeta bool
 var cachedMetaNames map[string]int
 var cachedMetaValues map[string][]string
+var searchIndex *suffixarray.Index
+
+const (
+	delim = '?'
+)
 
 func main() {
 	parseArgs()
+
+	searchIndex = suffixarray.New([]byte(""))
+	fmt.Println("Reading index")
+	r, _ := os.Open("genes.index")
+	searchIndex.Read(r)
 
 	iris.OnError(iris.StatusNotFound, func(ctx *iris.Context) {
 		ctx.ServeFile("./site/index.html", false)
@@ -111,13 +123,35 @@ func main() {
 
 	iris.Get("/info", func(ctx *iris.Context) {
 		values := getMetaValues("genes")
-		info := make(map[string]int)
-		info["genes"] = len(values["genes"])
-
+		info := make(map[string]interface{})
+		info["numGenes"] = len(values["genes"])
 		infoString, _ := json.Marshal(info)
 
 		ctx.WriteString(string(infoString))
+	})
 
+	iris.Get("/api/genes", func(ctx *iris.Context) {
+		queryString := ctx.URLParams()["query"]
+		fmt.Println("GENE QUERY:", queryString)
+
+		genes := make([]string, 0)
+		done := make(chan bool, 1)
+
+		go search(queryString, done, &genes)
+
+		go func() {
+			time.Sleep(5 * time.Millisecond)
+			done <- false
+		}()
+
+		valid := <-done
+		response := make(map[string]interface{})
+		response["valid"] = valid
+		response["genes"] = genes
+		responseString, _ := json.Marshal(response)
+
+		ctx.WriteString(string(responseString))
+		ctx.SetConnectionClose()
 	})
 
 	iris.StaticServe("./site/css", "/css")
@@ -412,4 +446,30 @@ func parseQuery(db *bolt.DB, query map[string][]string) ([]string, []string) {
 
 	return samplesSlice, properties
 
+}
+
+func search(query string, done chan bool, genes *[]string) {
+	searchResults := searchIndex.Lookup([]byte(query), 10)
+
+	for _, index := range searchResults {
+		prevDelim := index
+		postDelim := index
+
+		for true {
+			if prevDelim > 0 && searchIndex.Bytes()[prevDelim-1] == delim {
+				break
+			}
+			prevDelim--
+		}
+
+		for true {
+			if postDelim < len(searchIndex.Bytes()) && searchIndex.Bytes()[postDelim] == delim {
+				break
+			}
+			postDelim++
+		}
+		*genes = append(*genes, string(searchIndex.Bytes()[prevDelim:postDelim]))
+	}
+	fmt.Println(genes)
+	done <- true
 }
