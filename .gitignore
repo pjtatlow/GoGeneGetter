@@ -3,3 +3,4 @@ server/testIris
 **/.DS_Store
 **.db
 data/
+db/
