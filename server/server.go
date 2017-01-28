@@ -9,7 +9,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/deckarep/golang-set"
@@ -125,6 +124,7 @@ func main() {
 		values := getMetaValues("genes")
 		info := make(map[string]interface{})
 		info["numGenes"] = len(values["genes"])
+		info["delim"] = string(delim)
 		infoString, _ := json.Marshal(info)
 
 		ctx.WriteString(string(infoString))
@@ -134,19 +134,9 @@ func main() {
 		queryString := ctx.URLParams()["query"]
 		fmt.Println("GENE QUERY:", queryString)
 
-		genes := make([]string, 0)
-		done := make(chan bool, 1)
+		genes := search(queryString)
 
-		go search(queryString, done, &genes)
-
-		go func() {
-			time.Sleep(5 * time.Millisecond)
-			done <- false
-		}()
-
-		valid := <-done
 		response := make(map[string]interface{})
-		response["valid"] = valid
 		response["genes"] = genes
 		responseString, _ := json.Marshal(response)
 
@@ -448,28 +438,28 @@ func parseQuery(db *bolt.DB, query map[string][]string) ([]string, []string) {
 
 }
 
-func search(query string, done chan bool, genes *[]string) {
-	searchResults := searchIndex.Lookup([]byte(query), 10)
-
+func search(query string) []string {
+	genes := make([]string, 0)
+	searchResults := searchIndex.Lookup([]byte(query), 100)
+	length := len(searchIndex.Bytes())
 	for _, index := range searchResults {
 		prevDelim := index
 		postDelim := index
 
 		for true {
-			if prevDelim > 0 && searchIndex.Bytes()[prevDelim-1] == delim {
+			if prevDelim == 0 || searchIndex.Bytes()[prevDelim-1] == delim {
 				break
 			}
 			prevDelim--
 		}
 
 		for true {
-			if postDelim < len(searchIndex.Bytes()) && searchIndex.Bytes()[postDelim] == delim {
+			if postDelim == (length) || searchIndex.Bytes()[postDelim] == delim {
 				break
 			}
 			postDelim++
 		}
-		*genes = append(*genes, string(searchIndex.Bytes()[prevDelim:postDelim]))
+		genes = append(genes, string(searchIndex.Bytes()[prevDelim:postDelim]))
 	}
-	fmt.Println(genes)
-	done <- true
+	return genes
 }

@@ -18,16 +18,12 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
     $scope.query = "";
     $scope.meta = null;
     $scope.metaTypes = null;
-    $scope.genes = null;
+    $scope.genes = {"results":[],"selected":[]};
     $scope.selectedValues = {};
     $scope.totalNumSamples = null;
     $scope.totalNumGenes = null;
     $scope.numSamples = 0;
     $scope.numCalculating = 0;
-
-    $scope.gene = {
-        search: ""
-    }
 
     $scope.metaType = {
         "current": null,
@@ -71,7 +67,8 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
     }).then(function successCallback(response) {
         console.log(response.data);
         $scope.totalNumGenes = response.data.numGenes
-        $scope.genes = response.data.genes
+        $scope.delim = response.data.delim
+        $scope.searchGenes($scope.delim);
     }, function errorCallback(response) {
         console.error(response)
     });        
@@ -183,19 +180,19 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
         console.log($scope);
     }
 
-    $scope.$watch("gene", function(newValue,oldValue) {
-        console.log(newValue)
+    $scope.searchGenes = function(query) {
+        if (query.length == 0) {
+            query = $scope.delim;
+        }
         $http({
             method: 'GET',
-            url: '/api/genes?query='+newValue.search
+            url: '/api/genes?query='+query
         }).then(function successCallback(response) {
-            console.log(response.data);
-            $scope.genes = response.data;
-
+            console.log(response)
+            $scope.genes.results = response.data.genes;
         }, function errorCallback(response) {
-            console.error(response)
+            console.error(response);
         });
-    }, true)
-
+    }
 
 }]);

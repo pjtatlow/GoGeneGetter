@@ -1,15 +1,14 @@
-<!--<ui-select multiple ng-model="" theme="bootstrap" close-on-select="false" title="Select genes">
-    <ui-select-match placeholder="Select values...">{{$item}}</ui-select-match>
-    <ui-select-choices repeat="gene as gene in genes | filter: $select.search">
-        <div ng-bind-html="gene | highlight: $select.search"></div>
-    </ui-select-choices>
-</ui-select>-->
 
-<input ng-model="gene.search" >
+<ui-select multiple ng-model="genes.selected" theme="bootstrap" close-on-select="false" title="Select genes">
+    <ui-select-match  placeholder="Select values...">{{$item}}</ui-select-match>
+    <ui-select-choices refresh="searchGenes($select.search)" refresh-delay="100" repeat="item as item in genes.results track by $index">
+        <div ng-bind-html="item | highlight: $select.search"></div>
+    </ui-select-choices>
+</ui-select>
 
 <form action="/query" method="post">
     <input type="hidden" name="query" ng-value="query">
     <button class="btn btn-default" type="submit" ng-disabled="numSamples == 0">Submit</button>
 </form>
 
-{{genes | json}}
+{{genes.results | json}}
