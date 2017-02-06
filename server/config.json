@@ -1,4 +1,4 @@
 {
-    "dbFile":"test.db",
+    "dbFile":"../test.db",
     "cacheMeta": true
 }
