@@ -9,6 +9,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/boltdb/bolt"
 	"github.com/deckarep/golang-set"
@@ -26,7 +27,11 @@ const (
 )
 
 func main() {
-	parseArgs()
+	info := parseArgs()
+	values := getMetaValues("genes")
+	info["numGenes"] = len(values["genes"])
+	info["delim"] = string(delim)
+	infoString, _ := json.Marshal(info)
 
 	searchIndex = suffixarray.New([]byte(""))
 	fmt.Println("Reading index")
@@ -37,46 +42,52 @@ func main() {
 		ctx.ServeFile("./site/index.html", false)
 	})
 
-	// iris.Post("/query", func(ctx *iris.Context) {
-	// 	ctx.Response.Header.Set("Content-Type", "text/csv")
-	// 	var query map[string][]string
-	// 	queryString := ctx.PostValuesAll()["query"][0]
-	// 	json.Unmarshal([]byte(queryString), &query)
+	iris.Post("/api/query", func(ctx *iris.Context) {
+		ctx.Response.Header.Set("Content-Type", "text/csv")
+		var query map[string][]string
+		// queryString := ctx.PostBody()
+		queryString := []byte(ctx.PostValuesAll()["query"][0])
 
-	// 	ctx.Response.Header.Set("Content-disposition", "attachment; filename=test.csv")
-	// 	// ctx.StreamWriter(stream)
+		fmt.Println(string(queryString))
 
-	// 	ctx.Stream(func(w *bufio.Writer) {
+		json.Unmarshal(queryString, &query)
 
-	// 		db, err := bolt.Open(dbFile, 0600, &bolt.Options{ReadOnly: true})
-	// 		if err != nil {
-	// 			log.Fatal(err)
-	// 		}
-	// 		defer db.Close()
-	// 		samples, properties := parseQuery(db, query)
-	// 		fmt.Fprint(w, strings.Join(properties, ","))
-	// 		fmt.Fprint(w, "\n")
+		ctx.Response.Header.Set("Content-disposition", "attachment; filename=test.csv")
 
-	// 		db.View(func(tx *bolt.Tx) error {
-	// 			for _, sample := range samples {
+		// ctx.StreamWriter(stream)
 
-	// 				b := tx.Bucket([]byte(sample))
-	// 				for _, prop := range properties {
-	// 					v := b.Get([]byte(prop))
-	// 					fmt.Fprint(w, string(v)+",")
-	// 				}
-	// 				fmt.Fprint(w, "\n")
-	// 				if err := w.Flush(); err != nil {
-	// 					return err
-	// 				}
-	// 			}
-	// 			return nil
-	// 		})
-	// 	})
+		ctx.Stream(func(w *bufio.Writer) {
 
-	// })
+			db, err := bolt.Open(dbFile, 0600, &bolt.Options{ReadOnly: true})
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+			samples, properties := parseQuery(db, query)
 
-	iris.Get("/numSamples", func(ctx *iris.Context) {
+			fmt.Fprint(w, strings.Join(properties, ","))
+			fmt.Fprint(w, "\n")
+
+			db.View(func(tx *bolt.Tx) error {
+				for _, sample := range samples {
+
+					b := tx.Bucket([]byte(sample))
+					for _, prop := range properties {
+						v := b.Get([]byte(prop))
+						fmt.Fprint(w, string(v)+",")
+					}
+					fmt.Fprint(w, "\n")
+					if err := w.Flush(); err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+		})
+
+	})
+
+	iris.Get("/api/numSamples", func(ctx *iris.Context) {
 
 		var query map[string][]string
 		query_string := ctx.URLParams()["query"]
@@ -93,7 +104,7 @@ func main() {
 
 	})
 
-	iris.Get("/meta", func(ctx *iris.Context) {
+	iris.Get("/api/meta", func(ctx *iris.Context) {
 		queryString := ctx.URLParams()["query"]
 		var query map[string][]string
 		json.Unmarshal([]byte(queryString), &query)
@@ -120,13 +131,7 @@ func main() {
 		// }
 	})
 
-	iris.Get("/info", func(ctx *iris.Context) {
-		values := getMetaValues("genes")
-		info := make(map[string]interface{})
-		info["numGenes"] = len(values["genes"])
-		info["delim"] = string(delim)
-		infoString, _ := json.Marshal(info)
-
+	iris.Get("/api/info", func(ctx *iris.Context) {
 		ctx.WriteString(string(infoString))
 	})
 
@@ -155,7 +160,7 @@ func main() {
 	iris.Listen(":8080")
 }
 
-func parseArgs() {
+func parseArgs() map[string]interface{} {
 	f, fErr := os.Open(os.Args[1])
 	if fErr != nil {
 		panic(fErr)
@@ -180,7 +185,7 @@ func parseArgs() {
 			cachedMetaNames[name] = len(values)
 		}
 	}
-
+	return config
 }
 
 func getMetaValues(name string) map[string][]string {

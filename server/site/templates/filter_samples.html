@@ -1,10 +1,10 @@
-<div class="col-sm-4 col-sm-offset-4 form-group">
+<div class="col-sm-4 col-sm-offset-4 form-group text-center">
     <label>MetaData Types</label>
     <select class="form-control" ng-model="metaType.current" ng-change="buildChartData(true)">
         <option ng-repeat="mt in metaTypes" value="{{mt}}">{{mt}}</option>
     </select>
 
-    <h4>Samples selected: {{numSamples}}</h4>
+    <h2>{{numSamples}}<br><small>Samples selected</small></h2>
 
 </div>
 
@@ -12,7 +12,8 @@
 <div ng-if="labels.length > 0">
 
     <div class="col-sm-12" >
-        <canvas id="doughnut" class="chart chart-doughnut  max-height-50 center-chart" chart-data="values" chart-labels="labels" chart-click="clickChart">
+        <canvas id="doughnut" class="chart chart-doughnut  max-height-50 center-chart" chart-data="values" 
+        chart-labels="labels" chart-click="clickChart">
         </canvas> 
     </div>     
 
@@ -34,7 +35,7 @@
         <div class="input-group">
 
             <ui-select multiple ng-model="metaType.selected" theme="bootstrap" close-on-select="false" title="Filter on {{metaType.current}}">
-                <ui-select-match placeholder="Select values...">{{$item}} : {{ numberOfSamples($item) }}</ui-select-match>
+                <ui-select-match placeholder="Select values...">{{$item}} {{ numberOfSamples($item) }}</ui-select-match>
                 <ui-select-choices repeat="item as item in metaType.values | filter: $select.search">
                     <div ng-bind-html="item | highlight: $select.search"></div>
                 </ui-select-choices>

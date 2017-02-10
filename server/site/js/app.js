@@ -14,8 +14,9 @@ app.config(['$routeProvider','$locationProvider',function($routeProvider, $locat
     $locationProvider.html5Mode(true);
 }]);
 
-app.controller("MainController",['$scope','$http',function($scope,$http) {
+app.controller("MainController",['$scope','$http','$location','$rootScope',function($scope,$http,$location,$rootScope) {
     $scope.query = "";
+    $scope.allMeta = null;
     $scope.meta = null;
     $scope.metaTypes = null;
     $scope.genes = {"results":[],"selected":[]};
@@ -24,6 +25,9 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
     $scope.totalNumGenes = null;
     $scope.numSamples = 0;
     $scope.numCalculating = 0;
+
+    $scope.btnText = "";
+    $scope.targetRoute = "";
 
     $scope.metaType = {
         "current": null,
@@ -40,18 +44,22 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
                 delete this[key]
             }
         },newValue)
-        $scope.query = JSON.stringify(newValue);
+        
         $scope.fetchMeta();
     }, true);
 
     $scope.fetchMeta = function() {
-        console.log("fetching meta",$scope.query)
         $http({
             method: 'GET',
-            url: '/meta?query='+$scope.query
+            url: '/api/meta?query='+JSON.stringify($scope.selectedValues)
         }).then(function successCallback(response) {
             console.log(response.data);
             $scope.meta = response.data;
+
+            if ($scope.allMeta === null) {
+                $scope.allMeta = angular.copy($scope.meta);
+            }
+
             $scope.calcNumSamples();
 
             $scope.buildChartData(false);
@@ -63,27 +71,13 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
 
     $http({
         method: 'GET',
-        url: '/info'
+        url: '/api/info'
     }).then(function successCallback(response) {
-        console.log(response.data);
-        $scope.totalNumGenes = response.data.numGenes
-        $scope.delim = response.data.delim
-        $scope.searchGenes($scope.delim);
+        $scope.info = response.data
+        $scope.searchGenes($scope.info.delim);
     }, function errorCallback(response) {
         console.error(response)
     });        
-
-    $scope.fetchMetaValues = function(name) {
-        $http({
-            method: 'GET',
-            url: '/meta?q='+name
-        }).then(function successCallback(response) {
-            console.log(response);
-        }, function errorCallback(response) {
-            console.error(response);
-            alert("Error fetching values");
-        })
-    }
 
     $scope.calcNumSamples = function() {
         $scope.numSamples = 0;
@@ -118,7 +112,7 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
                 $scope.values.push(value);
             },null);
             if (changed === true) {
-                $scope.metaType.values = angular.copy($scope.labels);
+                $scope.metaType.values = Object.keys($scope.allMeta[$scope.metaType.current]);
                 if ($scope.selectedValues[$scope.metaType.current] != undefined) {
                     $scope.metaType.selected = $scope.selectedValues[$scope.metaType.current];
                 } else {
@@ -128,8 +122,6 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
             }
         }        
     }
-
-
 
     $scope.clickChart = function(x) {
         if (x.length > 0) {
@@ -170,9 +162,9 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
     $scope.numberOfSamples = function(item) {
         var value = $scope.meta[$scope.metaType.current][item]
         if (value !== undefined) {
-            return value;
+            return " : " + value;
         } else {
-            return 0;
+            return "";
         }
     }
 
@@ -182,7 +174,7 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
 
     $scope.searchGenes = function(query) {
         if (query.length == 0) {
-            query = $scope.delim;
+            query = $scope.info.delim;
         }
         $http({
             method: 'GET',
@@ -194,5 +186,39 @@ app.controller("MainController",['$scope','$http',function($scope,$http) {
             console.error(response);
         });
     }
+
+    $scope.submitQuery = function() {
+        var data = angular.merge({},$scope.selectedValues,{"genes":$scope.genes.selected});
+        console.log(data);
+        $scope.queryValue = JSON.stringify(data);
+    }
+
+    $scope.nextRoute = function() {
+        $location.path($scope.targetRoute);
+    }
+
+    $rootScope.$on('$routeChangeSuccess', function(scope, current, pre) {
+        console.log($location.path())
+
+        switch($location.path()) {
+            case "/":
+                $scope.btnText = "Next <i class='fa fa-arrow-right'></i>";
+                $scope.targetRoute = "/samples";
+                break;
+            case "/samples":
+                $scope.btnText = "Next <i class='fa fa-arrow-right'></i>";
+                $scope.targetRoute = "/genes";
+                break;
+            case "/genes":
+                $scope.btnText = "Submit";
+                $scope.targetRoute = "/download";
+                break;
+            default:
+                $scope.btnText = "<i class='fa fa-home'></i>";
+                $scope.targetRoute = "/";
+                break;
+        }
+
+    });
 
 }]);

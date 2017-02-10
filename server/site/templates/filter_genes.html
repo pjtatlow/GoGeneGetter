@@ -6,9 +6,9 @@
     </ui-select-choices>
 </ui-select>
 
-<form action="/query" method="post">
-    <input type="hidden" name="query" ng-value="query">
-    <button class="btn btn-default" type="submit" ng-disabled="numSamples == 0">Submit</button>
+<form action="/api/query" method="post">
+    <input type="hidden" name="query" ng-value="queryValue">
+    <button class="btn btn-default" type="button" ng-click="submitQuery()" ng-disabled="numSamples == 0">Submit</button>
 </form>
 
 {{genes.results | json}}

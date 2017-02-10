@@ -1,10 +1,10 @@
 html {
-  position: relative;
-  min-height: 100%;
+  min-height: 100vh;
 }
 body {
-  /* Margin bottom by footer height */
-  margin-bottom: 60px;
+  min-height: 100vh;
+  position: relative;
+  /*margin-bottom: 60px;*/
 }
 .footer {
   position: absolute;
@@ -69,10 +69,21 @@ span > .selectize-input-btn {
 .meta-delete {
   height: 30px;
   border: 1px solid darkgray;
-  /*position: absolute;*/
   border-radius: 0px 3px 3px 0px;
   display: inline-block;
   font-size: .8em;
   margin: 10px 5px 10px -5px;
-  /*color: lightgray;*/
+}
+
+.description {
+  margin: 15px 0px 30px 0px;
+}
+
+.title {
+  text-align: center;
+}
+
+.float-corner {
+  margin-top: -50px;
+  float: right;
 }

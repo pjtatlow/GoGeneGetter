@@ -19,7 +19,7 @@
 
         <base href="/">
     </head>
-    <body ng-controller="MainController">
+    <body ng-controller="MainController" ng-cloak>
 
         <nav class="navbar navbar-default">
             <div class="container">
@@ -38,13 +38,15 @@
             </div>
         </nav>
 
-        <div class="container" ng-view>
+        <div class="container content" ng-view>
         </div>
 
         <footer class="footer">
-            <div class="container">
+            <div class="container" style="position: relative;">
+                <button class="btn btn-success float-corner" ng-click="nextRoute()"><span ng-bind-html="btnText"></span></button>                
                 <h6>Thdskjfhskfjhsk</h6>
             </div>
         </footer>
+        
     </body>
 </html>
