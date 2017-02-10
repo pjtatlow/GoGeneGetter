@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"index/suffixarray"
+	"io"
 	"log"
 	"os"
 	"sort"
@@ -43,20 +44,19 @@ func main() {
 	})
 
 	iris.Post("/api/query", func(ctx *iris.Context) {
-		ctx.Response.Header.Set("Content-Type", "text/csv")
+		ctx.Header().Add("Content-Type", "text/csv")
 		var query map[string][]string
 		// queryString := ctx.PostBody()
-		queryString := []byte(ctx.PostValuesAll()["query"][0])
+		queryString := []byte(ctx.PostValue("query"))
 
 		fmt.Println(string(queryString))
 
 		json.Unmarshal(queryString, &query)
 
-		ctx.Response.Header.Set("Content-disposition", "attachment; filename=test.csv")
+		ctx.Header().Add("Content-disposition", "attachment; filename=test.csv")
 
 		// ctx.StreamWriter(stream)
-
-		ctx.Stream(func(w *bufio.Writer) {
+		ctx.StreamWriter(func(w io.Writer) bool {
 
 			db, err := bolt.Open(dbFile, 0600, &bolt.Options{ReadOnly: true})
 			if err != nil {
@@ -77,14 +77,12 @@ func main() {
 						fmt.Fprint(w, string(v)+",")
 					}
 					fmt.Fprint(w, "\n")
-					if err := w.Flush(); err != nil {
-						return err
-					}
 				}
 				return nil
 			})
-		})
+			return true
 
+		})
 	})
 
 	iris.Get("/api/numSamples", func(ctx *iris.Context) {
@@ -100,7 +98,7 @@ func main() {
 		defer db.Close()
 		samples, _ := parseQuery(db, query)
 		numSamples := len(samples)
-		ctx.Write(strconv.Itoa(numSamples))
+		ctx.Write([]byte(strconv.Itoa(numSamples)))
 
 	})
 
@@ -146,7 +144,6 @@ func main() {
 		responseString, _ := json.Marshal(response)
 
 		ctx.WriteString(string(responseString))
-		ctx.SetConnectionClose()
 	})
 
 	iris.StaticServe("./site/css", "/css")
