@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 	"text/scanner"
 	"time"
@@ -79,6 +80,24 @@ func main() {
 				print("Line", lineNum, "only has", len(line), "columns, but the header has", len(header), "columns. Exiting.")
 				os.Exit(2)
 			}
+
+			// print("Line")
+			// print(line)
+			// print("Header")
+			// print(header)
+			// print("Id")
+			// print(id)
+			// print("DB")
+			// print(db)
+			// print("MetaVals")
+			// print(MetaVals)
+			// print("bar")
+			// print(bar)
+			// print("&wg")
+			// print(&wg)
+			// print("ms")
+			// print(ms)
+			// os.Exit(2)
 
 			// insert the line into the database
 			wg.Add(1)
@@ -234,7 +253,9 @@ func insertLine(line []string, header []string, id int, db *bolt.DB, MetaVals Me
 				}
 				ms[index][val] = append(ms[index][val], line[id])
 			}
-			err2 := bucket.Put([]byte(header[index]), []byte(line[index]))
+			// err2 := bucket.Put([]byte(header[index]), []byte(line[index]))
+			ix := strconv.Itoa(index)
+			err2 := bucket.Put([]byte(ix), []byte(line[index]))
 			if err2 != nil {
 				return fmt.Errorf("insert %s:%s into bucket: %s", header[index], line[index], err2)
 			}

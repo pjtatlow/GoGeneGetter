@@ -37,45 +37,7 @@ func main() {
 		ctx.ServeFile("./site/index.html", false)
 	})
 
-	// iris.Post("/query", func(ctx *iris.Context) {
-	// 	ctx.Response.Header.Set("Content-Type", "text/csv")
-	// 	var query map[string][]string
-	// 	queryString := ctx.PostValuesAll()["query"][0]
-	// 	json.Unmarshal([]byte(queryString), &query)
-
-	// 	ctx.Response.Header.Set("Content-disposition", "attachment; filename=test.csv")
-	// 	// ctx.StreamWriter(stream)
-
-	// 	ctx.Stream(func(w *bufio.Writer) {
-
-	// 		db, err := bolt.Open(dbFile, 0600, &bolt.Options{ReadOnly: true})
-	// 		if err != nil {
-	// 			log.Fatal(err)
-	// 		}
-	// 		defer db.Close()
-	// 		samples, properties := parseQuery(db, query)
-	// 		fmt.Fprint(w, strings.Join(properties, ","))
-	// 		fmt.Fprint(w, "\n")
-
-	// 		db.View(func(tx *bolt.Tx) error {
-	// 			for _, sample := range samples {
-
-	// 				b := tx.Bucket([]byte(sample))
-	// 				for _, prop := range properties {
-	// 					v := b.Get([]byte(prop))
-	// 					fmt.Fprint(w, string(v)+",")
-	// 				}
-	// 				fmt.Fprint(w, "\n")
-	// 				if err := w.Flush(); err != nil {
-	// 					return err
-	// 				}
-	// 			}
-	// 			return nil
-	// 		})
-	// 	})
-
-	// })
-
+	// I don't think this function ever gets used.
 	iris.Get("/numSamples", func(ctx *iris.Context) {
 
 		var query map[string][]string
@@ -89,57 +51,47 @@ func main() {
 		defer db.Close()
 		samples, _ := parseQuery(db, query)
 		numSamples := len(samples)
+		fmt.Println("NUM SAMPLES", strconv.Itoa(numSamples)) // Never gets written...
 		ctx.Write(strconv.Itoa(numSamples))
-
 	})
 
+	// From a query like {SM_Dose: [3.33, 0.37, 0.04, -666]}, return each meta
+	// name with each meta value that hasn't been filtered out with counts
+	// associated with each meta value like {"CL_Name" : {"A375":45}, ...}
 	iris.Get("/meta", func(ctx *iris.Context) {
 		queryString := ctx.URLParams()["query"]
 		var query map[string][]string
 		json.Unmarshal([]byte(queryString), &query)
 		fmt.Println("Got query:", query)
 		values, _ := json.Marshal(getFilteredMeta(query))
+		fmt.Println("META VALUES:", string(values))
 		ctx.WriteString(string(values))
-
-		// if !cacheMeta {
-		// 	if len(q) == 0 { // we want all meta names from database
-		// 		names, _ := json.Marshal(getMetaNames())
-		// 		ctx.WriteString(string(names))
-		// 	} else { // we want the values of a specific name from database
-		// 		values, _ := json.Marshal(getMetaValues(q))
-		// 		ctx.WriteString(string(values))
-		// 	}
-		// } else {
-		// 	if len(q) == 0 { // we want all meta names from cache
-		// 		names, _ := json.Marshal(cachedMetaNames)
-		// 		ctx.WriteString(string(names))
-		// 	} else { // we want the values of a specific name from cache
-		// 		values, _ := json.Marshal(cachedMetaValues[q])
-		// 		ctx.WriteString(string(values))
-		// 	}
-		// }
 	})
 
+	// Not sure what the purpose is, but it just returns a delimiter that
+	// seems to always be '?' and a numGenes that seems to stay constant.
 	iris.Get("/info", func(ctx *iris.Context) {
 		values := getMetaValues("genes")
 		info := make(map[string]interface{})
 		info["numGenes"] = len(values["genes"])
 		info["delim"] = string(delim)
 		infoString, _ := json.Marshal(info)
-
+		fmt.Println("INFO", string(infoString))
 		ctx.WriteString(string(infoString))
 	})
 
+	// As of my testing, queryString was always '?', and responseString was
+	// always a JSON like {"genes":["gene1","gene2"...]}
 	iris.Get("/api/genes", func(ctx *iris.Context) {
 		queryString := ctx.URLParams()["query"]
-		fmt.Println("GENE QUERY:", queryString)
+		fmt.Println("GENE QUERY:", string(queryString))
 
 		genes := search(queryString)
 
 		response := make(map[string]interface{})
 		response["genes"] = genes
 		responseString, _ := json.Marshal(response)
-
+		fmt.Println("GENES", string(responseString))
 		ctx.WriteString(string(responseString))
 		ctx.SetConnectionClose()
 	})
